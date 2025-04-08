@@ -3,10 +3,14 @@ use std::net::SocketAddr;
 use axum::{extract::ConnectInfo, response::Html, routing::get};
 use tokio::net::TcpListener;
 
-use axum_hello_world::hello_world;
+use backend_ai_agent::alloy_test;
+use backend_ai_agent::hello_world;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // test the alloy provider
+    let _ = alloy_test::test_alloy().await;
+
     // pass incoming GET requests on "/hello-world" to "hello_world" handler.
     let router = hello_world::create_router().route("/", get(index));
 
