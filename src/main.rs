@@ -1,30 +1,36 @@
 use std::net::SocketAddr;
 
-use axum::{Router, response::Redirect, routing::get};
+use axum::{extract::ConnectInfo, response::Html, routing::get};
 use tokio::net::TcpListener;
+
+use axum_hello_world::hello_world;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // pass incoming GET requests on "/hello-world" to "hello_world" handler.
-    let app = Router::new()
-        .route("/hello-world", get(hello_world))
-        .fallback(anything_else);
+    let router = hello_world::create_router().route("/", get(index));
 
     // write address like this to not make typos
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     let listener = TcpListener::bind(&addr).await?;
 
-    axum::serve(listener, app.into_make_service()).await?;
+    axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }
 
 // handler function that returns a simple string
-async fn hello_world() -> &'static str {
-    "Hello, world!"
-}
+async fn index(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> Html<String> {
+    let html = format!(
+        "<h1>Your ip address is: \"{addr}\"</h1>\n\
+         <h2>You are in immediate danger of getting identified by bad people.</h2>\n\
+         <h2>Thankfully we have a VPN service to hide your ip.</h2>\n\
+         <h2>Visit <a href=\"http://localhost:3000/average_joe_absolutely_needs_vpn\">THIS</a> link to download it.</h2>"
+    );
 
-// handler function for fallback
-async fn anything_else() -> Redirect {
-    Redirect::to("/hello-world")
+    Html(html)
 }
